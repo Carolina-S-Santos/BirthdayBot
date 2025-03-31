@@ -111,6 +111,7 @@ async def verificar_aniversarios_diario():
         # === Verifica aniversários ===
         await verifica_aniversarios()
 
+
 async def verifica_aniversarios():
     hoje = datetime.now().strftime("%d/%m")
     aniversarios = carregar_aniversarios()
@@ -120,21 +121,31 @@ async def verifica_aniversarios():
         print("❌ Canal de aniversários não encontrado.")
         return
 
+    guild = bot.get_guild(GUILD_ID)
+
     for pessoa in aniversarios:
         if pessoa["data"] == hoje:
             try:
                 if pessoa.get("user_id"):
-                    user = await bot.fetch_user(pessoa["user_id"])
-                    await canal.send(
-                        f"Atenção @everyone !\n🎉 Feliz aniversário, {user.mention}! 🎉 Hoje o seu bug foi promovido a feature: mais um ano de vida! 🎂"
-                    )
+                    membro = guild.get_member(pessoa["user_id"])
+                    if not membro:
+                        print(f"⚠️ Membro com ID {pessoa['user_id']} não encontrado.")
+                        continue
+
+                    roles = [role.name.lower() for role in membro.roles]
+
+                    if "world-class developer" in roles:
+                        await canal.send(f"💻 Atenção @everyone !\n🎉 Feliz aniversário, {membro.mention}! 🎉 Hoje o seu bug foi promovido a feature: mais um ano de vida! 🎂")
+                    elif "world-class designer" in roles:
+                        await canal.send(f"🎨 Atenção @everyone !\n🎉 Feliz aniversário, {membro.mention} Seu ciclo de vida foi atualizado com sucesso:\n✔️ Versão nova\n✔️ Melhor experiência do usuário\n❌ Nenhuma melhoria de performance após o café 🎉")
+
                 else:
-                    await canal.send(
-                        f"Atenção @everyone !\n🎉 Sistema detectou aniversário de **{pessoa['nome']}**.\nStatus: Offline\nInterpretação: Fugindo da equipe pra evitar parabéns.\nResultado: Falhou. Parabéns enviado mesmo assim. 🎈"
-                    )
+                    # Para aniversariantes externos
+                    await canal.send(f"Atenção @everyone !\n🎉 Sistema detectou aniversário de **{pessoa['nome']}**.\nStatus: Not Found\nInterpretação: Fugindo da equipe pra evitar parabéns.\nResultado: Falhou. Parabéns enviado mesmo assim. 🎈")
+
             except Exception as e:
                 print(f"Erro ao enviar mensagem: {e}")
-    
+
 
 @bot.event
 async def on_ready():
