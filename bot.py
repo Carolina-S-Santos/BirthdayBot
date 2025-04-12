@@ -58,7 +58,8 @@ async def adicionaraniversario(interaction: discord.Interaction, membro: discord
         aniversarios.append({
             "nome": membro.display_name,
             "user_id": membro.id,
-            "data": data
+            "data": data,
+            "ultimo_envio": "nunca"
         })
 
     salvar_aniversarios(aniversarios)
@@ -83,7 +84,8 @@ async def adicionaraniversarianteexterno(interaction: discord.Interaction, nome:
         aniversarios.append({
             "nome": nome,
             "user_id": None,
-            "data": data
+            "data": data,
+            "ultimo_envio": "nunca"
         })
 
     salvar_aniversarios(aniversarios)
@@ -124,7 +126,7 @@ async def verifica_aniversarios():
     guild = bot.get_guild(GUILD_ID)
 
     for pessoa in aniversarios:
-        if pessoa["data"] == hoje:
+        if pessoa["data"] == hoje and pessoa["ultimo_envio"] != datetime.now().strftime("%d/%m/%Y"):
             try:
                 if pessoa.get("user_id"):
                     membro = guild.get_member(pessoa["user_id"])
@@ -142,20 +144,24 @@ async def verifica_aniversarios():
                 else:
                     # Para aniversariantes externos
                     await canal.send(f"Atenção @everyone !\n🎉 Sistema detectou aniversário de **{pessoa['nome']}**.\nStatus: Not Found\nInterpretação: Fugindo da equipe pra evitar parabéns.\nResultado: Falhou. Parabéns enviado mesmo assim. 🎈")
-
+                
+                # Registrar que foi enviado uma mensagem de aniversario 
+                pessoa["ultimo_envio"] = datetime.now().strftime("%d/%m/%Y")
             except Exception as e:
                 print(f"Erro ao enviar mensagem: {e}")
+                
+    # Salva os aniversarios para registrar as mensagens enviadas
+    salvar_aniversarios(aniversarios)
 
-
+verificacao_em_andamento = False
 @bot.event
 async def on_ready():
+    global verificacao_em_andamento
     print(f"✅ Bot conectado como {bot.user}")
-    
-    # Remove comandos globais antigos
-    await tree.sync(guild=MY_GUILD)        # força os comandos só para o seu servidor
-    await tree.sync()                      # sobrescreve os comandos globais
-    
-    print("📦 Comandos sincronizados com o servidor.")
-    asyncio.create_task(verificar_aniversarios_diario())
+    await tree.sync(guild=MY_GUILD)
+
+    if not verificacao_em_andamento:
+        verificacao_em_andamento = True
+        asyncio.create_task(verificar_aniversarios_diario())
 
 bot.run(TOKEN)
