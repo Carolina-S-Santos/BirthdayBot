@@ -153,15 +153,15 @@ async def verifica_aniversarios():
     # Salva os aniversarios para registrar as mensagens enviadas
     salvar_aniversarios(aniversarios)
 
+verificacao_em_andamento = False
 @bot.event
 async def on_ready():
+    global verificacao_em_andamento
     print(f"✅ Bot conectado como {bot.user}")
-    
-    # Remove comandos globais antigos
-    await tree.sync(guild=MY_GUILD)        # força os comandos só para o seu servidor
-    await tree.sync()                      # sobrescreve os comandos globais
-    
-    print("📦 Comandos sincronizados com o servidor.")
-    asyncio.create_task(verificar_aniversarios_diario())
+    await tree.sync(guild=MY_GUILD)
+
+    if not verificacao_em_andamento:
+        verificacao_em_andamento = True
+        asyncio.create_task(verificar_aniversarios_diario())
 
 bot.run(TOKEN)
